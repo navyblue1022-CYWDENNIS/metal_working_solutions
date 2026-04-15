@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>金屬加工液互動選型工具 | MWF Interactive Selector</title>
+<style>
+  :root {
+    --deep: #065A82;
+    --teal: #1C7293;
+    --mid: #21295C;
+    --accent: #F5A03B;
+    --bg: #F4F7FB;
+    --card: #FFFFFF;
+    --txt: #1A2030;
+    --muted: #6B7783;
+    --light: #E3ECF3;
+    --danger: #B8383A;
+    --good: #2E8B57;
+    --warn: #D08A00;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; font-family: "Microsoft JhengHei", "Segoe UI", Calibri, sans-serif; background: var(--bg); color: var(--txt); }
+  header {
+    background: linear-gradient(135deg, var(--mid) 0%, var(--deep) 100%);
+    color: #fff; padding: 18px 32px; display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  header .brand { display: flex; align-items: center; gap: 12px; }
+  header .tag { background: var(--accent); color: #fff; font-weight: bold; padding: 2px 10px; border-radius: 4px; font-size: 12px; letter-spacing: 1px; }
+  header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+  header .sub { font-size: 13px; opacity: 0.85; font-style: italic; }
+  header .actions button {
+    background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-left: 8px; font-size: 13px;
+  }
+  header .actions button:hover { background: rgba(255,255,255,0.25); }
+  .container { display: grid; grid-template-columns: 380px 1fr; gap: 20px; padding: 20px; max-width: 1600px; margin: 0 auto; }
+  @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--card); border-radius: 10px; box-shadow: 0 2px 10px rgba(20,40,80,0.06); padding: 20px; margin-bottom: 16px; }
+  .panel h2 { margin: 0 0 6px; font-size: 17px; color: var(--deep); border-left: 4px solid var(--accent); padding-left: 10px; }
+  .panel .en { color: var(--muted); font-size: 11px; font-style: italic; margin-bottom: 12px; }
+  .panel h3 { font-size: 13px; color: var(--teal); margin: 16px 0 8px; letter-spacing: 0.3px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 7px 11px; border: 1.5px solid var(--light); border-radius: 20px;
+    font-size: 12px; cursor: pointer; transition: all 0.15s; background: #fff; color: var(--txt);
+    user-select: none;
+  }
+  .chip:hover { border-color: var(--teal); color: var(--teal); }
+  .chip.active { background: var(--deep); color: #fff; border-color: var(--deep); }
+  .chip.ehs { border-color: var(--warn); }
+  .chip.ehs.active { background: var(--warn); border-color: var(--warn); color: #fff; }
+
+  .slider-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+  .slider-row label { flex: 0 0 80px; font-size: 12px; color: var(--muted); }
+  .slider-row input[type="range"] { flex: 1; accent-color: var(--deep); }
+  .slider-row .v { font-weight: bold; color: var(--deep); width: 40px; text-align: right; font-size: 13px; }
+
+  /* Output layout */
+  .out-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 1200px) { .out-grid { grid-template-columns: 1fr; } }
+
+  .hero-rec {
+    background: linear-gradient(135deg, var(--deep) 0%, var(--teal) 100%);
+    color: #fff; padding: 22px 26px; border-radius: 10px; margin-bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center; gap: 20px;
+  }
+  .hero-rec .left .label { font-size: 12px; letter-spacing: 2px; opacity: 0.85; text-transform: uppercase; }
+  .hero-rec .left .type { font-size: 28px; font-weight: 700; margin-top: 4px; }
+  .hero-rec .left .desc { font-size: 13px; opacity: 0.9; margin-top: 6px; max-width: 500px; line-height: 1.5; }
+  .hero-rec .score-ring { flex: 0 0 120px; text-align: center; }
+  .hero-rec .score-ring svg { width: 120px; height: 120px; }
+  .hero-rec .score-ring .num { fill: #fff; font-size: 30px; font-weight: bold; }
+  .hero-rec .score-ring .lbl { fill: var(--accent); font-size: 11px; letter-spacing: 1px; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table th, table td { padding: 8px 10px; border-bottom: 1px solid var(--light); text-align: left; }
+  table th { background: var(--deep); color: #fff; font-size: 12px; letter-spacing: 0.3px; }
+  table tr:nth-child(even) td { background: #F7FAFC; }
+  td.pct { font-family: Consolas, monospace; color: var(--deep); font-weight: bold; text-align: right; width: 70px; }
+
+  /* Additive cards */
+  .add-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+  .add-card {
+    border: 1.5px solid var(--light); border-radius: 8px; padding: 10px 12px; background: #fff;
+    border-left: 4px solid var(--teal);
+  }
+  .add-card .code { font-weight: bold; color: var(--deep); font-size: 14px; }
+  .add-card .fn { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .add-card .dose { font-size: 12px; color: var(--accent); font-weight: bold; margin-top: 4px; font-family: Consolas, monospace; }
+
+  /* Caution */
+  .caution { background: #FFF4E6; border-left: 5px solid var(--warn); padding: 12px 16px; border-radius: 6px; }
+  .caution h3 { color: var(--warn); margin: 0 0 6px; font-size: 13px; }
+  .caution ul { margin: 0; padding-left: 20px; font-size: 12.5px; line-height: 1.6; }
+  .taboo { background: #FCEEEE; border-left: 5px solid var(--danger); padding: 12px 16px; border-radius: 6px; margin-top: 10px; }
+  .taboo h3 { color: var(--danger); margin: 0 0 6px; font-size: 13px; }
+  .taboo ul { margin: 0; padding-left: 20px; font-size: 12.5px; line-height: 1.6; }
+
+  /* Performance bars */
+  .perf-list { display: flex; flex-direction: column; gap: 10px; }
+  .perf-row { display: grid; grid-template-columns: 110px 1fr 44px; align-items: center; gap: 10px; }
+  .perf-row .label { font-size: 12px; color: var(--txt); font-weight: 600; }
+  .perf-row .bar { height: 12px; background: var(--light); border-radius: 6px; overflow: hidden; }
+  .perf-row .fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--deep)); border-radius: 6px; transition: width 0.4s; }
+  .perf-row .val { text-align: right; font-size: 12px; font-weight: bold; color: var(--deep); }
+
+  /* Radar */
+  .radar-wrap { display: flex; justify-content: center; padding: 10px 0; }
+
+  /* Comparison */
+  .compare-view { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media print {
+    header .actions { display: none; }
+    .panel { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+    body { background: #fff; }
+  }
+
+  .breadcrumb { background: var(--mid); color: #fff; padding: 10px 20px; font-size: 13px; border-radius: 6px; margin-bottom: 16px; }
+  .breadcrumb b { color: var(--accent); }
+
+  .toggle-mode {
+    display: inline-flex; background: var(--light); border-radius: 20px; padding: 3px; margin-bottom: 12px;
+  }
+  .toggle-mode button {
+    border: none; background: transparent; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 12px; color: var(--muted);
+  }
+  .toggle-mode button.on { background: var(--deep); color: #fff; }
+
+  .empty-hint { padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
+  footer { padding: 20px; text-align: center; color: var(--muted); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="tag">MWF</span>
+    <div>
+      <h1>金屬加工液客戶互動選型工具</h1>
+      <div class="sub">MWF Interactive Selector · Powered by Lanxess Additin®</div>
+    </div>
+  </div>
+  <div class="actions">
+    <button onclick="resetAll()">🔄 重設</button>
+    <button onclick="window.print()">🖨️ 列印/存 PDF</button>
+    <button onclick="toggleCompare()" id="compareBtn">⇆ 比較模式</button>
+  </div>
+</header>
+
+<div class="container" id="mainContainer">
+
+  <!-- LEFT: input -->
+  <div>
+    <div class="panel">
+      <h2>1. 選擇工件金屬</h2>
+      <div class="en">Step 1 · Workpiece metal</div>
+      <div class="chips" id="metalChips"></div>
+    </div>
+
+    <div class="panel">
+      <h2>2. 加工工序</h2>
+      <div class="en">Step 2 · Machining process</div>
+      <div class="chips" id="processChips"></div>
+
+      <h3>切削負荷 Load level</h3>
+      <div class="chips" id="loadChips"></div>
+    </div>
+
+    <div class="panel">
+      <h2>3. EHS / 法規限制</h2>
+      <div class="en">Step 3 · EHS & regulatory constraints (optional)</div>
+      <div class="chips" id="ehsChips"></div>
+    </div>
+
+    <div class="panel">
+      <h2>4. 性能權重偏好</h2>
+      <div class="en">Step 4 · Performance priority (0=不重要, 5=關鍵)</div>
+      <div class="slider-row">
+        <label>冷卻</label>
+        <input type="range" min="0" max="5" value="3" id="w_cool" />
+        <span class="v" id="v_cool">3</span>
+      </div>
+      <div class="slider-row">
+        <label>潤滑</label>
+        <input type="range" min="0" max="5" value="3" id="w_lube" />
+        <span class="v" id="v_lube">3</span>
+      </div>
+      <div class="slider-row">
+        <label>防鏽</label>
+        <input type="range" min="0" max="5" value="3" id="w_rust" />
+        <span class="v" id="v_rust">3</span>
+      </div>
+      <div class="slider-row">
+        <label>槽壽命</label>
+        <input type="range" min="0" max="5" value="3" id="w_sump" />
+        <span class="v" id="v_sump">3</span>
+      </div>
+      <div class="slider-row">
+        <label>低油霧</label>
+        <input type="range" min="0" max="5" value="2" id="w_mist" />
+        <span class="v" id="v_mist">2</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: output -->
+  <div id="outputArea">
+    <div class="breadcrumb" id="breadcrumb">請從左側開始選擇 · Start with metal & process on the left</div>
+    <div id="outputPanel"></div>
+  </div>
+</div>
+
+<footer>
+  震豐股份有限公司 · 技術資料庫整合 Lanxess Additin® · 本工具僅供技術諮詢參考，實際配方請經實驗驗證 · © 2026
+</footer>
+
+<script>
+// ================== DATA MODEL ==================
+const METALS = [
+  { id: "carbon",    zh: "碳鋼",       en: "Carbon Steel",  emoji: "⚙️" },
+  { id: "castiron",  zh: "鑄鐵",       en: "Cast Iron",     emoji: "🔩" },
+  { id: "stainless", zh: "不鏽鋼",     en: "Stainless",     emoji: "✨" },
+  { id: "aluminum",  zh: "鋁合金",     en: "Aluminum",      emoji: "🛫" },
+  { id: "brass",     zh: "銅/黃銅",    en: "Cu / Brass",    emoji: "🟠" },
+  { id: "mg",        zh: "鎂合金",     en: "Magnesium",     emoji: "🔥" },
+  { id: "ti",        zh: "鈦合金",     en: "Titanium",      emoji: "🚀" },
+  { id: "superalloy",zh: "超合金",     en: "Ni-Superalloy", emoji: "🌀" },
+  { id: "tool",      zh: "工具鋼",     en: "Tool Steel",    emoji: "🛠️" },
+  { id: "pm",        zh: "粉末冶金",   en: "Powder Metal",  emoji: "🧩" },
+];
+
+const PROCESSES = [
+  { id: "grind",  zh: "磨削",          en: "Grinding" },
+  { id: "turn",   zh: "車削",          en: "Turning" },
+  { id: "mill",   zh: "銑削",          en: "Milling" },
+  { id: "drill",  zh: "鑽孔",          en: "Drilling" },
+  { id: "tap",    zh: "攻絲/拉削",     en: "Tapping/Broaching" },
+  { id: "gear",   zh: "齒輪加工",      en: "Gear Cutting" },
+  { id: "stamp",  zh: "沖壓/成形",     en: "Stamping/Forming" },
+];
+
+const LOADS = [
+  { id: "light",  zh: "輕負荷",   en: "Light" },
+  { id: "medium", zh: "中負荷",   en: "Medium" },
+  { id: "heavy",  zh: "重負荷",   en: "Heavy" },
+];
+
+const EHS = [
+  { id: "amine",  zh: "無胺",      en: "Amine-free" },
+  { id: "boron",  zh: "無硼",      en: "Boron-free" },
+  { id: "form",   zh: "無甲醛",    en: "Formaldehyde-free" },
+  { id: "chlor",  zh: "無氯",      en: "Chlorine-free" },
+  { id: "mist",   zh: "低油霧",    en: "Low mist" },
+  { id: "foam",   zh: "低泡沫",    en: "Low foam" },
+  { id: "clean",  zh: "易清洗",    en: "Easy-clean" },
+];
+
+// Metal profiles: allowed MWF types, taboos, and baseline performance drivers
+const METAL_PROFILE = {
+  carbon:    { mwf: ["semi","soluble","straight"],   rust: "high",   pH: "9.0-9.5",   taboos: ["過高活性硫可能腐蝕槽壁"],
+               ep_pref: ["RC 2540","RC 3740"], rp_pref: ["RC 4101","RC 4256"] },
+  castiron:  { mwf: ["semi","synthetic","soluble"],  rust: "very_high", pH: "9.2-9.6", taboos: ["鐵屑易染菌、須強殺菌","避免油霧揮發"],
+               ep_pref: ["RC 2526","RC 3740"], rp_pref: ["RC 4295","RC 4256"] },
+  stainless: { mwf: ["semi","soluble"],              rust: "med",    pH: "9.0-9.5",   taboos: ["避免氯殘留（應力腐蝕）","低泡要求高"],
+               ep_pref: ["RC 9720","RC 2540"], rp_pref: ["RC 4256","RC M42.006"] },
+  aluminum:  { mwf: ["synthetic","semi"],            rust: "low",    pH: "8.8-9.2",   taboos: ["禁強鹼 (pH > 9.5)","禁活性硫 RC 2411","禁高胺 → 染斑"],
+               ep_pref: ["RC 3760","RC 5050"], rp_pref: ["RC M42.006"] },
+  brass:     { mwf: ["semi","straight"],             rust: "med",    pH: "8.8-9.2",   taboos: ["禁活性硫 → 黃銅變色","必加 BTA 銅鈍化 RC 8210"],
+               ep_pref: ["RC 2515","RC 2526"], rp_pref: ["RC 4256","RC 8210"] },
+  mg:        { mwf: ["straight"],                    rust: "low",    pH: "N/A",       taboos: ["高水分 → 火災/H₂ 風險","禁水溶配方重切削"],
+               ep_pref: ["RC 2540","RC 3760"], rp_pref: ["RC 4200"] },
+  ti:        { mwf: ["semi","soluble"],              rust: "med",    pH: "9.0-9.3",   taboos: ["避免氯（應力腐蝕）","散熱差需高流量"],
+               ep_pref: ["RC 9720","RC 2411 W"], rp_pref: ["RC 4295"] },
+  superalloy:{ mwf: ["straight","semi"],             rust: "med",    pH: "9.0-9.3",   taboos: ["溫度極高、油霧大","刀具磨耗嚴重"],
+               ep_pref: ["RC 2411","RC 3740","RC 9410"], rp_pref: ["RC 4101"] },
+  tool:      { mwf: ["straight","semi"],             rust: "med",    pH: "9.0-9.5",   taboos: ["攻絲/精加工需高 EP"],
+               ep_pref: ["RC 2540","RC 3740"], rp_pref: ["RC 4102"] },
+  pm:        { mwf: ["semi"],                         rust: "med",    pH: "9.0-9.3",   taboos: ["孔隙易藏菌，強殺菌輪替","低滲透潤滑"],
+               ep_pref: ["RC 9701","RC 3890"], rp_pref: ["RC 4256"] },
+};
+
+const MWF_TYPES = {
+  synthetic: { zh: "全合成", en: "Fully Synthetic", cool: 5, lube: 2, rust: 3, sump: 5, mist: 5, cost: 4,
+               base: "無礦油、聚合物/酯水溶", pHtyp: "9.0-9.8" },
+  semi:      { zh: "半合成", en: "Semi-Synthetic",  cool: 4, lube: 3, rust: 4, sump: 4, mist: 4, cost: 3,
+               base: "礦油 10-30% + 合成",    pHtyp: "8.8-9.5" },
+  soluble:   { zh: "乳化液", en: "Soluble Oil",     cool: 3, lube: 4, rust: 4, sump: 3, mist: 4, cost: 2,
+               base: "礦油 40-60% + 乳化劑",   pHtyp: "8.8-9.3" },
+  straight:  { zh: "純油", en: "Straight Oil",      cool: 2, lube: 5, rust: 5, sump: 5, mist: 1, cost: 4,
+               base: "礦油/酯 90-100%",        pHtyp: "N/A" },
+};
+
+// Performance impact of loads
+const LOAD_EP_MULT = { light: 0.7, medium: 1.0, heavy: 1.6 };
+
+// Process EP/cooling demand
+const PROCESS_DEMAND = {
+  grind:  { ep: 0.5, cool: 5, lube: 2 },
+  turn:   { ep: 1.0, cool: 3, lube: 3 },
+  mill:   { ep: 1.1, cool: 4, lube: 3 },
+  drill:  { ep: 1.3, cool: 3, lube: 4 },
+  tap:    { ep: 1.8, cool: 2, lube: 5 },
+  gear:   { ep: 1.6, cool: 3, lube: 4 },
+  stamp:  { ep: 1.4, cool: 2, lube: 5 },
+};
+
+// Lanxess additive catalog
+const ADDITIVES = {
+  "RC 2411":    { fn: "活性硫化烯烴 · 極壓",       dose: "1-5%", sys: ["straight","semi"] },
+  "RC 2411 W":  { fn: "水溶性硫化物 · EP",         dose: "0.5-3%", sys: ["semi","soluble"] },
+  "RC 2515":    { fn: "非活性硫化烯烴 · EP 銅相容", dose: "1-5%", sys: ["straight","semi"] },
+  "RC 2526":    { fn: "非活性硫化烯烴 · EP",        dose: "1-4%", sys: ["straight","semi"] },
+  "RC 2540":    { fn: "非活性硫+酯 · EP+極性",      dose: "1-5%", sys: ["straight","semi","soluble"] },
+  "RC 3740":    { fn: "酸性磷酸酯胺鹽 · AW+防鏽",    dose: "0.5-2%", sys: ["straight","semi","soluble"] },
+  "RC 3760":    { fn: "中性磷酸酯 · AW (鋁友善)",    dose: "0.5-2%", sys: ["synthetic","semi"] },
+  "RC 3890":    { fn: "鹼性磷酸酯 · 水溶 AW 低泡",    dose: "0.5-2%", sys: ["synthetic","semi","soluble"] },
+  "RC 4101":    { fn: "石油磺酸鈉 · 油相防鏽",       dose: "2-6%", sys: ["straight"] },
+  "RC 4102":    { fn: "石油磺酸鈣 · 防鏽+清淨",      dose: "1-4%", sys: ["straight","soluble"] },
+  "RC 4256":    { fn: "羧酸複合 · 水溶無胺防鏽",      dose: "1-3%", sys: ["synthetic","semi","soluble"] },
+  "RC 4295":    { fn: "硼酸胺鹽 · 水溶防鏽+抑菌",     dose: "1-3%", sys: ["semi","soluble"] },
+  "RC M42.006": { fn: "無胺水溶防鏽",                dose: "1-3%", sys: ["synthetic","semi","soluble"] },
+  "RC 4200":    { fn: "烷基琥珀酸酯 · 油相防鏽",      dose: "0.5-2%", sys: ["straight"] },
+  "RC 8210":    { fn: "BTA · 銅鈍化",                dose: "0.05-0.3%", sys: ["all"] },
+  "RC 7115":    { fn: "酚+胺複合 · 抗氧化",           dose: "0.3-1.5%", sys: ["straight"] },
+  "APAN S":     { fn: "高分子胺 · 超高溫 AO",         dose: "0.3-1%", sys: ["straight"] },
+  "RC 5050":    { fn: "PEG 酯 · 水溶潤滑",            dose: "2-8%", sys: ["synthetic","semi"] },
+  "RC 5202":    { fn: "無油全合成主劑",               dose: "20-40%", sys: ["synthetic"] },
+  "RC 5250":    { fn: "半合成主劑",                   dose: "20-40%", sys: ["semi"] },
+  "RC 9410":    { fn: "油相 MWF 一劑式包",            dose: "5-15%", sys: ["straight"] },
+  "RC 9701":    { fn: "水溶切削一劑式包",             dose: "3-10%", sys: ["semi","soluble"] },
+  "RC 9720":    { fn: "高負荷水性包 · 不鏽鋼/鈦",      dose: "3-10%", sys: ["semi","soluble"] },
+};
+
+const BIOCIDES = {
+  default:    ["BIT 0.15%"],
+  amine_free: ["BIT 0.15%","IPBC 0.1%"],
+  form_free:  ["BIT 0.15%","IPBC 0.1%"],
+};
+
+// ================== STATE ==================
+const state = {
+  metal: null, process: null, load: "medium",
+  ehs: new Set(),
+  weights: { cool: 3, lube: 3, rust: 3, sump: 3, mist: 2 },
+  compare: false, // second selection stored in stateB
+};
+const stateB = { metal: null, process: null, load: "medium", ehs: new Set(), weights: { cool: 3, lube: 3, rust: 3, sump: 3, mist: 2 } };
+let activeState = state;
+
+// ================== UI BUILD ==================
+function makeChip(container, item, onClick, isActive, cls="") {
+  const b = document.createElement("button");
+  b.className = "chip " + cls + (isActive ? " active" : "");
+  b.innerHTML = (item.emoji ? item.emoji + " " : "") + `<strong>${item.zh}</strong> <span style="opacity:.7;font-size:11px">${item.en}</span>`;
+  b.onclick = () => { onClick(item.id); render(); };
+  container.appendChild(b);
+  return b;
+}
+
+function renderChips() {
+  const mc = document.getElementById("metalChips"); mc.innerHTML = "";
+  METALS.forEach(m => makeChip(mc, m, id => activeState.metal = (activeState.metal === id ? null : id), activeState.metal === m.id));
+  const pc = document.getElementById("processChips"); pc.innerHTML = "";
+  PROCESSES.forEach(p => makeChip(pc, p, id => activeState.process = (activeState.process === id ? null : id), activeState.process === p.id));
+  const lc = document.getElementById("loadChips"); lc.innerHTML = "";
+  LOADS.forEach(l => makeChip(lc, l, id => activeState.load = id, activeState.load === l.id));
+  const ec = document.getElementById("ehsChips"); ec.innerHTML = "";
+  EHS.forEach(e => makeChip(ec, e, id => { activeState.ehs.has(id) ? activeState.ehs.delete(id) : activeState.ehs.add(id); }, activeState.ehs.has(e.id), "ehs"));
+}
+
+function bindSliders() {
+  ["cool","lube","rust","sump","mist"].forEach(k => {
+    const s = document.getElementById("w_" + k);
+    const v = document.getElementById("v_" + k);
+    s.value = activeState.weights[k];
+    v.textContent = s.value;
+    s.oninput = () => { activeState.weights[k] = +s.value; v.textContent = s.value; render(); };
+  });
+}
+
+// ================== RECOMMEND LOGIC ==================
+function recommend(st) {
+  if (!st.metal || !st.process) return null;
+  const prof = METAL_PROFILE[st.metal];
+  const proc = PROCESSES.find(p => p.id === st.process);
+  const procD = PROCESS_DEMAND[st.process];
+  const loadMult = LOAD_EP_MULT[st.load];
+  const w = st.weights;
+
+  // Score each allowed MWF type
+  const scores = prof.mwf.map(type => {
+    const t = MWF_TYPES[type];
+    // Base fit from weights
+    let score = t.cool * w.cool + t.lube * w.lube + t.rust * w.rust + t.sump * w.sump + t.mist * w.mist;
+    // Process demand adjustments
+    score += (t.cool * procD.cool + t.lube * procD.lube) * 0.6;
+    // EHS constraints
+    if (st.ehs.has("mist") && t.mist < 3) score -= 20;
+    if (st.ehs.has("foam") && type === "soluble") score -= 8;
+    if (st.ehs.has("clean") && type === "straight") score -= 15;
+    return { type, t, score };
+  }).sort((a,b) => b.score - a.score);
+  const top = scores[0];
+
+  // Build formulation
+  const formulation = buildFormulation(st, top.type);
+  const additives = formulation.filter(f => ADDITIVES[f.item]);
+  const perf = calcPerformance(st, top.type, formulation);
+  const cautions = buildCautions(st, top.type);
+
+  return { type: top.type, mwf: top.t, formulation, additives, perf, cautions, prof, proc, scores };
+}
+
+function buildFormulation(st, type) {
+  const prof = METAL_PROFILE[st.metal];
+  const procD = PROCESS_DEMAND[st.process];
+  const loadMult = LOAD_EP_MULT[st.load];
+  const amineFree = st.ehs.has("amine") || st.metal === "aluminum";
+  const boronFree = st.ehs.has("boron");
+  const formFree  = st.ehs.has("form") || true; // always modern
+  const lowFoam   = st.ehs.has("foam");
+
+  const items = [];
+
+  if (type === "synthetic") {
+    items.push({ item: "RC 5202", pct: 30, role: "全合成主劑" });
+    items.push({ item: "RC 3760", pct: 1.5, role: "中性磷酸酯 AW" });
+    items.push({ item: amineFree ? "RC M42.006" : (boronFree ? "RC 4256" : "RC 4256"), pct: 2, role: "水溶防鏽" });
+    if (procD.ep * loadMult > 1.2) items.push({ item: "RC 2411 W", pct: 1.5, role: "水溶 EP" });
+    items.push({ item: "RC 5050", pct: 3, role: "水溶潤滑" });
+    items.push({ item: "EO/PO 消泡", pct: 0.2, role: "低污染消泡" });
+    items.push({ item: "IPBC", pct: 0.1, role: "防黴" });
+    items.push({ item: "BIT", pct: 0.15, role: "抑菌" });
+    items.push({ item: "去離子水", pct: 61.55, role: "餘量" });
+  } else if (type === "semi") {
+    items.push({ item: "基油 (礦物/酯)", pct: 20, role: "基油" });
+    items.push({ item: "RC 5250", pct: 25, role: "半合成主劑" });
+    const ep = prof.ep_pref[0];
+    items.push({ item: ep, pct: procD.ep * loadMult > 1.3 ? 4 : 2.5, role: "EP/AW" });
+    items.push({ item: prof.ep_pref[1] || "RC 3740", pct: 1, role: "AW 協同" });
+    items.push({ item: amineFree ? "RC M42.006" : (boronFree ? "RC 4256" : prof.rp_pref[0]), pct: 2, role: "防鏽" });
+    if (st.metal === "brass") items.push({ item: "RC 8210", pct: 0.2, role: "銅鈍化" });
+    items.push({ item: lowFoam ? "EO/PO 消泡" : "矽消泡", pct: 0.1, role: "消泡" });
+    items.push({ item: "IPBC", pct: 0.1, role: "防黴" });
+    items.push({ item: "BIT", pct: 0.15, role: "抑菌" });
+    const used = 20 + 25 + (procD.ep * loadMult > 1.3 ? 4 : 2.5) + 1 + 2 + (st.metal === "brass" ? 0.2 : 0) + 0.1 + 0.1 + 0.15;
+    items.push({ item: "去離子水", pct: +(100 - used).toFixed(2), role: "餘量" });
+  } else if (type === "soluble") {
+    items.push({ item: "基油 (礦物)", pct: 50, role: "基油" });
+    items.push({ item: "RC 5010", pct: 15, role: "磺酸+EP 複合" });
+    items.push({ item: prof.ep_pref[0], pct: procD.ep * loadMult > 1.3 ? 4 : 2.5, role: "EP" });
+    items.push({ item: prof.rp_pref[0], pct: 3, role: "防鏽" });
+    if (st.metal === "brass") items.push({ item: "RC 8210", pct: 0.2, role: "銅鈍化" });
+    items.push({ item: "乳化劑/偶合劑", pct: 8, role: "乳化" });
+    items.push({ item: "BIT", pct: 0.15, role: "抑菌" });
+    items.push({ item: "消泡", pct: 0.1, role: "消泡" });
+    const used = 50 + 15 + (procD.ep * loadMult > 1.3 ? 4 : 2.5) + 3 + (st.metal === "brass" ? 0.2 : 0) + 8 + 0.15 + 0.1;
+    items.push({ item: "去離子水", pct: +(100 - used).toFixed(2), role: "餘量 (稀釋前濃縮液)" });
+  } else if (type === "straight") {
+    items.push({ item: "基油 (礦物/酯/PAO)", pct: 80, role: "基油" });
+    items.push({ item: "RC 2540", pct: loadMult > 1.3 ? 5 : 3, role: "EP" });
+    if (loadMult > 1.3) items.push({ item: "RC 2411", pct: 2, role: "活性 EP" });
+    items.push({ item: "RC 3740", pct: 1, role: "AW+防鏽" });
+    items.push({ item: "RC 7115", pct: 0.8, role: "抗氧化" });
+    if (st.metal === "superalloy") items.push({ item: "APAN S", pct: 0.5, role: "超高溫 AO" });
+    items.push({ item: prof.rp_pref[0], pct: 3, role: "防鏽" });
+    if (st.metal === "brass") items.push({ item: "RC 8210", pct: 0.1, role: "銅鈍化" });
+    const total = items.reduce((s,x)=>s+x.pct, 0);
+    if (total < 100) items.push({ item: "基油調整", pct: +(100 - total).toFixed(2), role: "平衡" });
+  }
+  return items;
+}
+
+function calcPerformance(st, type, formulation) {
+  const t = MWF_TYPES[type];
+  const hasEP = formulation.some(f => /RC 2[4-5]|RC 9/.test(f.item));
+  const hasAW = formulation.some(f => /RC 3[7-8]/.test(f.item));
+  const hasBTA = formulation.some(f => /8210|8239/.test(f.item));
+  return {
+    cool: t.cool,
+    lube: Math.min(5, t.lube + (hasEP ? 1 : 0) + (hasAW ? 0.5 : 0)),
+    rust: Math.min(5, t.rust + (formulation.some(f => /4[12]\d\d|M42/.test(f.item)) ? 1 : 0)),
+    sump: t.sump,
+    mist: t.mist,
+    ehs: 5 - (st.ehs.has("amine") && formulation.some(f => /胺|amine/i.test(f.item)) ? 2 : 0),
+  };
+}
+
+function buildCautions(st, type) {
+  const prof = METAL_PROFILE[st.metal];
+  const c = { notes: [], taboos: [...prof.taboos] };
+  const t = MWF_TYPES[type];
+  c.notes.push(`建議 pH 範圍：<b>${prof.pH}</b>`);
+  c.notes.push(`MWF 類型特性：${t.zh} (${t.en}) · 基油 ${t.base}`);
+  if (st.ehs.has("amine")) c.notes.push("已鎖定：無胺防鏽（RC M42.006）");
+  if (st.ehs.has("boron")) c.notes.push("已鎖定：無硼（避用 RC 4295 硼酸胺鹽）");
+  if (st.ehs.has("form"))  c.notes.push("已鎖定：無甲醛（避 HHT 三嗪；採 BIT+IPBC）");
+  if (st.ehs.has("mist"))  c.notes.push("低油霧要求 → 建議水性或全合成系統");
+  if (st.process === "tap" && type !== "straight") c.taboos.push("攻絲/拉削 → 建議優先純油或高 EP 水性（RC 9720）");
+  if (st.metal === "aluminum" && type === "synthetic") c.notes.push("鋁件：pH 保持 < 9.3，避 BTA 過量");
+  return c;
+}
+
+// ================== RENDER ==================
+function selectionLabel(st) {
+  const m = METALS.find(x => x.id === st.metal)?.zh || "—";
+  const p = PROCESSES.find(x => x.id === st.process)?.zh || "—";
+  const l = LOADS.find(x => x.id === st.load)?.zh || "—";
+  const ehs = [...st.ehs].map(id => EHS.find(x => x.id === id).zh).join(" / ") || "無特殊限制";
+  return `<b>${m}</b> · ${p} · ${l} · <span style="color:var(--accent)">${ehs}</span>`;
+}
+
+function render() {
+  renderChips();
+  document.getElementById("breadcrumb").innerHTML = "當前選擇 Current selection · " + selectionLabel(activeState);
+  const panel = document.getElementById("outputPanel");
+
+  if (state.compare) {
+    panel.innerHTML = `
+      <div class="toggle-mode">
+        <button class="${activeState === state ? 'on' : ''}" onclick="switchActive('A')">方案 A</button>
+        <button class="${activeState === stateB ? 'on' : ''}" onclick="switchActive('B')">方案 B</button>
+      </div>
+      <div class="compare-view">
+        <div>${renderSide(state, "A")}</div>
+        <div>${renderSide(stateB, "B")}</div>
+      </div>`;
+  } else {
+    panel.innerHTML = renderSide(state, "");
+  }
+}
+
+function switchActive(ab) {
+  activeState = ab === "A" ? state : stateB;
+  render();
+}
+
+function renderSide(st, tag) {
+  const rec = recommend(st);
+  if (!rec) return `<div class="panel empty-hint">👈 請先選擇金屬與工序<br><small>Select metal & process to generate recommendations</small></div>`;
+  const labelPrefix = tag ? `<div style="font-weight:bold;color:var(--accent);margin-bottom:8px">方案 ${tag} · ${selectionLabel(st)}</div>` : "";
+  return labelPrefix + heroCard(rec) + perfPanel(rec) + formulationPanel(rec) + additivePanel(rec) + cautionPanel(rec);
+}
+
+function heroCard(rec) {
+  const t = rec.mwf;
+  const overall = Math.round((t.cool + t.lube + t.rust + t.sump + t.mist) * 4);
+  return `
+  <div class="hero-rec">
+    <div class="left">
+      <div class="label">RECOMMENDED MWF TYPE</div>
+      <div class="type">${t.zh} · ${t.en}</div>
+      <div class="desc">基油：${t.base} · 典型 pH：${t.pHtyp}<br>
+        對應 ${METALS.find(m=>m.id===activeStateMetal(rec)).zh}／${PROCESSES.find(p=>p.id===activeStateProcess(rec)).zh} 工序下最佳綜合分數</div>
+    </div>
+    <div class="score-ring">
+      <svg viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="10"/>
+        <circle cx="60" cy="60" r="50" fill="none" stroke="#F5A03B" stroke-width="10"
+                stroke-dasharray="${Math.round(overall*3.14)} 314" stroke-linecap="round"
+                transform="rotate(-90 60 60)"/>
+        <text x="60" y="58" text-anchor="middle" class="num">${overall}</text>
+        <text x="60" y="78" text-anchor="middle" class="lbl">SCORE</text>
+      </svg>
+    </div>
+  </div>`;
+}
+
+function activeStateMetal(rec) {
+  // find via scanning – lazy
+  for (const st of [state, stateB]) {
+    if (st.metal && recommend(st) && recommend(st).type === rec.type && st.process && recommend(st).proc.id === rec.proc.id) return st.metal;
+  }
+  return state.metal || stateB.metal;
+}
+function activeStateProcess(rec) {
+  for (const st of [state, stateB]) {
+    if (st.process && recommend(st) && recommend(st).proc.id === rec.proc.id) return st.process;
+  }
+  return state.process || stateB.process;
+}
+
+function perfPanel(rec) {
+  const p = rec.perf;
+  const items = [
+    ["冷卻 Cooling", p.cool],
+    ["潤滑 Lubricity", p.lube],
+    ["防鏽 Rust", p.rust],
+    ["槽壽命 Sump Life", p.sump],
+    ["低油霧 Low Mist", p.mist],
+    ["EHS 友善", p.ehs],
+  ];
+  return `
+  <div class="panel">
+    <h2>📊 性能表現</h2>
+    <div class="en">Performance Profile · 1-5 scale</div>
+    <div class="out-grid">
+      <div class="perf-list">
+        ${items.map(([label, v]) => `
+          <div class="perf-row">
+            <div class="label">${label}</div>
+            <div class="bar"><div class="fill" style="width:${(v/5)*100}%"></div></div>
+            <div class="val">${v.toFixed(1)}</div>
+          </div>`).join("")}
+      </div>
+      <div class="radar-wrap">${radar(items.map(i=>i[1]), items.map(i=>i[0].split(" ")[0]))}</div>
+    </div>
+  </div>`;
+}
+
+function radar(values, labels) {
+  const cx = 140, cy = 140, R = 100;
+  const n = values.length;
+  let grid = "";
+  for (let g = 1; g <= 5; g++) {
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI/2 + i * 2 * Math.PI / n;
+      const r = R * g/5;
+      pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
+    }
+    grid += `<polygon points="${pts.join(" ")}" fill="none" stroke="#E3ECF3" stroke-width="1"/>`;
+  }
+  let axes = "";
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI/2 + i * 2 * Math.PI / n;
+    axes += `<line x1="${cx}" y1="${cy}" x2="${cx + R * Math.cos(a)}" y2="${cy + R * Math.sin(a)}" stroke="#E3ECF3"/>`;
+  }
+  const valPts = values.map((v, i) => {
+    const a = -Math.PI/2 + i * 2 * Math.PI / n;
+    const r = R * v/5;
+    return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
+  }).join(" ");
+  let labelText = "";
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI/2 + i * 2 * Math.PI / n;
+    const lx = cx + (R + 18) * Math.cos(a);
+    const ly = cy + (R + 18) * Math.sin(a) + 4;
+    labelText += `<text x="${lx}" y="${ly}" text-anchor="middle" font-size="11" fill="#1A2030" font-weight="600">${labels[i]}</text>`;
+  }
+  return `<svg viewBox="0 0 280 280" width="260" height="260">
+    ${grid}${axes}
+    <polygon points="${valPts}" fill="rgba(6,90,130,0.28)" stroke="#065A82" stroke-width="2"/>
+    ${values.map((v,i) => {
+      const a = -Math.PI/2 + i * 2 * Math.PI / n;
+      const r = R * v/5;
+      return `<circle cx="${cx + r * Math.cos(a)}" cy="${cy + r * Math.sin(a)}" r="3.5" fill="#F5A03B"/>`;
+    }).join("")}
+    ${labelText}
+  </svg>`;
+}
+
+function formulationPanel(rec) {
+  let total = 0; rec.formulation.forEach(f => total += f.pct);
+  const rows = rec.formulation.map(f => `
+    <tr>
+      <td>${f.item}</td>
+      <td><span style="color:var(--muted);font-size:11px">${f.role}</span></td>
+      <td class="pct">${f.pct.toFixed(2)}</td>
+    </tr>`).join("");
+  return `
+  <div class="panel">
+    <h2>🧪 起始配方建議</h2>
+    <div class="en">Starting formulation (wt%) · for lab trial</div>
+    <table>
+      <thead><tr><th style="width:35%">成分 Component</th><th>角色 Role</th><th class="pct">%</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="2" style="text-align:right;font-weight:bold">TOTAL</td><td class="pct">${total.toFixed(2)}</td></tr></tfoot>
+    </table>
+  </div>`;
+}
+
+function additivePanel(rec) {
+  const cards = rec.formulation.filter(f => ADDITIVES[f.item]).map(f => {
+    const a = ADDITIVES[f.item];
+    return `<div class="add-card">
+      <div class="code">${f.item}</div>
+      <div class="fn">${a.fn}</div>
+      <div class="dose">${f.pct}% (範圍 ${a.dose})</div>
+    </div>`;
+  }).join("");
+  return `
+  <div class="panel">
+    <h2>🔬 朗盛 Additin® 關鍵添加劑</h2>
+    <div class="en">Key Lanxess Additin® additives in this formulation</div>
+    <div class="add-cards">${cards}</div>
+  </div>`;
+}
+
+function cautionPanel(rec) {
+  const notes = rec.cautions.notes.map(n => `<li>${n}</li>`).join("");
+  const taboos = rec.cautions.taboos.map(t => `<li>${t}</li>`).join("");
+  return `
+  <div class="panel">
+    <div class="out-grid">
+      <div class="caution">
+        <h3>📋 配方備註 Notes</h3>
+        <ul>${notes}</ul>
+      </div>
+      <div class="taboo">
+        <h3>⚠ 禁忌與風險 Taboos</h3>
+        <ul>${taboos}</ul>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ================== ACTIONS ==================
+function resetAll() {
+  state.metal = null; state.process = null; state.load = "medium"; state.ehs.clear();
+  stateB.metal = null; stateB.process = null; stateB.load = "medium"; stateB.ehs.clear();
+  activeState = state;
+  document.getElementById("compareBtn").textContent = "⇆ 比較模式";
+  state.compare = false;
+  render();
+}
+
+function toggleCompare() {
+  state.compare = !state.compare;
+  document.getElementById("compareBtn").textContent = state.compare ? "✕ 關閉比較" : "⇆ 比較模式";
+  activeState = state;
+  render();
+}
+
+// ================== INIT ==================
+bindSliders();
+render();
+</script>
+</body>
+</html>
